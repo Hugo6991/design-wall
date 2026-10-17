@@ -1,0 +1,8 @@
+site/cards.js
+dist/
+__pycache__/
+.DS_Store
+extension/config.js
+.env*
+!.env.example
+.wrangler/

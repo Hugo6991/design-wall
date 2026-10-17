@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "存到設計牆",
+  "version": "0.1.0",
+  "description": "快捷鍵或右鍵把畫面、圖片存進 設計牆，進來後自動看圖打分",
+  "permissions": ["activeTab", "contextMenus", "notifications", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "存這個畫面到設計牆" },
+  "icons": { "128": "icon.png" },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+S", "mac": "Alt+Shift+S" },
+      "description": "截目前畫面存到設計牆"
+    }
+  }
+}

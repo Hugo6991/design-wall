@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>X Wall</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* 所有按讚的推文，最新在前。配色沿用設計牆（米白、墨字），卡片是推文本身：媒體在上、文字在下 */
+  :root { --bg: #f1efe8; --paper: #fff; --ink: #1c1c1c; --ink-2: #5d5a55; --ink-3: #8c8882; --line: #e2dfd7; --well: #e9e6de; --orange: #D85A30; --green: #1D9E75; --sans: "Noto Sans TC", -apple-system, "PingFang TC", system-ui, sans-serif; --gap: 14px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.55 var(--sans); }
+  body { padding-block: 0 calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .top { position: sticky; top: 0; z-index: 5; background: rgba(241, 239, 232, .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; }
+  .top h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+  .top h1 small { font-weight: 400; color: var(--ink-3); font-size: 13px; margin-left: 8px; }
+  .top h1 .xlogo { width: 22px; height: 22px; vertical-align: -4px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .search { flex: 1; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px; min-width: 0; }
+  .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 400 15px var(--sans); color: var(--ink); }
+  .top a { color: var(--ink-2); text-decoration: none; font-size: 14px; white-space: nowrap; }
+  .sync { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 0 16px 8px; font-size: 12px; color: var(--ink-3); }
+  .sync i { font-style: normal; opacity: .5; }
+  .sync .bad { color: var(--orange); font-weight: 500; }
+  .filters { display: flex; gap: 8px; padding: 4px 16px 12px; overflow-x: auto; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters button { flex: none; font: 500 13px/1 var(--sans); color: var(--ink-2); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .wall { columns: 5 240px; column-gap: var(--gap); padding: 0 16px; }
+  .card { break-inside: avoid; margin: 0 0 var(--gap); background: var(--paper); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: block; color: inherit; text-decoration: none; }
+  .card .media { display: grid; gap: 2px; background: var(--well); }
+  .card .media.two { grid-template-columns: 1fr 1fr; }
+  .card .media img, .card .media video { display: block; width: 100%; height: auto; object-fit: cover; background: var(--well); }
+  .card .media.two img, .card .media.two video { aspect-ratio: 1; }
+  .card .media .vid { position: relative; }
+  .card .media .vid::after { content: ""; position: absolute; left: 10px; bottom: 10px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0, 0, 0, .55); background-image: linear-gradient(transparent, transparent); }
+  .card .media .vid i { position: absolute; left: 19px; bottom: 17px; border-left: 9px solid #fff; border-top: 6px solid transparent; border-bottom: 6px solid transparent; z-index: 1; }
+  .card .body { padding: 12px 14px 12px; display: grid; gap: 8px; }
+  .card .who { display: flex; align-items: baseline; gap: 6px; font-size: 13px; color: var(--ink-3); min-width: 0; }
+  .card .who b { color: var(--ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .who span { white-space: nowrap; }
+  .card .who time { margin-left: auto; white-space: nowrap; }
+  .card p { margin: 0; font-size: 14.5px; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+  .card .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card .tags span { font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: var(--well); color: var(--ink-2); }
+  .card .tags .wall { background: #e3f3ec; color: var(--green); }
+  .card .tags .wait { color: var(--ink-3); }
+  .more { display: grid; place-items: center; padding: 24px; color: var(--ink-3); font-size: 14px; }
+  .more button { font: 500 14px var(--sans); border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 10px 18px; cursor: pointer; }
+  .empty { text-align: center; color: var(--ink-3); padding: 48px 16px; }
+  .card { cursor: pointer; }
+  /* 細節：點卡片開，左邊媒體、右邊全文；手機上下排 */
+  .sheet { position: fixed; inset: 0; z-index: 20; background: rgba(20, 19, 17, .72); display: grid; place-items: center; padding: 16px; }
+  .sheet[hidden] { display: none; }
+  .pin { background: var(--paper); border-radius: 18px; width: min(1120px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .9fr); }
+  .pin .gallery { background: #0e0e0e; display: grid; align-content: center; gap: 2px; min-height: 240px; }
+  .pin .gallery img, .pin .gallery video { display: block; width: 100%; height: auto; max-height: calc(100vh - 32px); object-fit: contain; background: #0e0e0e; }
+  .pin .gallery .none { color: #8c8882; text-align: center; padding: 40px; font-size: 14px; }
+  .pin .side { padding: 22px 22px 26px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+  .pin .side .who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--ink-3); }
+  .pin .side .who b { color: var(--ink); font-size: 16px; font-weight: 600; }
+  .pin .side .full { margin: 0; font-size: 16px; line-height: 1.7; white-space: pre-line; word-break: break-word; }
+  .pin .side .full a { color: var(--ink-2); }
+  .pin .side .meta { display: grid; gap: 6px; font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 12px; }
+  .pin .side .meta b { color: var(--ink); font-weight: 500; }
+  .pin .side .go { display: inline-block; background: var(--ink); color: #fff; text-decoration: none; border-radius: 999px; padding: 11px 18px; font-size: 14px; font-weight: 500; justify-self: start; }
+  .pin .side .go.ghost { background: var(--well); color: var(--ink); }
+  .ctl { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); right: 14px; z-index: 21; display: flex; gap: 8px; }
+  .ctl button { width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .92); color: #1c1c1c; font-size: 18px; cursor: pointer; display: grid; place-items: center; }
+  @media (max-width: 760px) { .pin { grid-template-columns: 1fr; } .pin .gallery img, .pin .gallery video { max-height: 70vh; } .sheet { padding: 8px; align-items: start; } }
+  @media (prefers-color-scheme: dark) { .pin .side .go { background: var(--ink); color: var(--bg); } }
+  /* 手機：兩欄、圖為主（約 2/3）、字兩行（一頁至少看到 4 張） */
+  @media (max-width: 640px) {
+    :root { --gap: 8px; }
+    .top { padding: calc(10px + env(safe-area-inset-top, 0px)) 10px 8px; gap: 8px; }
+    .search { height: 36px; }
+    .sync { padding: 0 10px 6px; font-size: 11px; }
+    .filters { padding: 2px 10px 8px; gap: 6px; }
+    .filters button { padding: 7px 11px; font-size: 12px; }
+    .wall { columns: 2; padding: 0 10px; }
+    .card { border-radius: 10px; }
+    .top h1 small { display: none; }   /* 數字搬到下面那行，標題列只留 logo、搜尋、Design Wall */
+    .top a { font-size: 13px; }
+    .card .media img, .card .media video { aspect-ratio: 4 / 5; object-position: top; }
+    .card .media img.shot { aspect-ratio: auto; object-fit: contain; }   /* 推文截圖照原比例，裁了會像壞圖 */
+    .card .media.two img, .card .media.two video { aspect-ratio: 1; }
+    .card .media .vid::after { width: 22px; height: 22px; left: 8px; bottom: 8px; }
+    .card .media .vid i { left: 15px; bottom: 14px; border-left-width: 7px; border-top-width: 5px; border-bottom-width: 5px; }
+    .card .body { padding: 8px 10px 9px; gap: 4px; }
+    .card .who { font-size: 11px; gap: 4px; }
+    .card .who span { display: none; }
+    .card .who time { font-size: 10.5px; }
+    .card p { font-size: 12.5px; line-height: 1.4; -webkit-line-clamp: 2; }
+    .card .media + .body p { -webkit-line-clamp: 2; }
+    .card .tags { gap: 4px; }
+    .card .tags span { font-size: 10px; padding: 2px 6px; }
+    .card .tags .n, .card .tags a { display: none; }
+    .card:not(:has(.media)) p { -webkit-line-clamp: 5; }
+  }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161513; --paper: #1f1e1b; --ink: #ece9e2; --ink-2: #b2ada4; --ink-3: #8a857c; --line: #2d2b27; --well: #2a2824; } .top { background: rgba(22, 21, 19, .9); } .card .tags .wall { background: #1b3a2d; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1><span class="sr">X wall</span><svg class="xlogo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg><small id="count"></small></h1>
+  <label class="search"><input id="q" type="search" placeholder="搜文字、作者" autocomplete="off"></label>
+  <a href="./">Design Wall</a>
+</header>
+<div class="sync" id="sync"></div>
+<div class="filters" id="filters">
+  <button type="button" data-f="" aria-pressed="true">全部</button>
+  <button type="button" data-f="media">有圖</button>
+  <button type="button" data-f="video">影片</button>
+  <button type="button" data-f="wall">Design Wall</button>
+  <button type="button" data-f="text">只有文字</button>
+</div>
+<main>
+  <div class="wall" id="wall"></div>
+  <p class="empty" id="empty" hidden>沒有符合的推文</p>
+  <div class="more" id="more"></div>
+</main>
+<div class="sheet" id="sheet" hidden>
+  <div class="ctl"><button type="button" id="prev" aria-label="上一則">‹</button><button type="button" id="next" aria-label="下一則">›</button><button type="button" id="close" aria-label="關閉">×</button></div>
+  <article class="pin" id="pin"></article>
+</div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const API = window.API_BASE || '';
+  let KEY = '';
+  try { const m = /^#key=(.+)$/.exec(location.hash); if (m) { localStorage.setItem('wall-key', m[1]); history.replaceState(null, '', location.pathname); } KEY = localStorage.getItem('wall-key') || ''; } catch (e) {}
+  const wall = $('wall'), more = $('more'), empty = $('empty'), q = $('q');
+  const state = { filter: '', q: '', next: null, loading: false, shown: 0 };
+  const when = (s) => { if (!s) return ''; const d = new Date(s); if (isNaN(d)) return s.slice(0, 10); const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0'); return `${d.getFullYear() === new Date().getFullYear() ? '' : d.getFullYear() + '.'}${mm}.${dd} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const k = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n || 0));
+  const link = (t) => esc(t).replace(/(https?:\/\/\S+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--ink-2)">$1</a>');
+  function card(r) {
+    const ms = r.media.filter((m) => m.img || m.video).slice(0, 4);
+    let media = '';
+    if (ms.length) {
+      media = `<div class="media${ms.length > 1 ? ' two' : ''}">` + ms.map((m) => {
+        const img = m.img ? `<img loading="lazy" class="${m.type === 'shot' ? 'shot' : ''}" src="${esc(m.img.startsWith('/') ? API + m.img : m.img)}" ${m.w && m.h ? `width="${m.w}" height="${m.h}"` : ''} alt="">` : '';
+        if (m.video) return `<span class="vid"><i></i>${img}</span>`;
+        return img;
+      }).join('') + '</div>';
+    }
+    const tags = [];
+    if (r.on_wall) tags.push('<span class="wall">Design Wall</span>');
+    if (r.kind && r.score) tags.push(`<span>${esc(r.kind)} · ${r.score} 分</span>`);
+    if (r.status !== 'done') tags.push('<span class="wait">還在抓</span>');
+    if (r.likes != null && (r.likes || r.views)) tags.push(`<span class="n">♥ ${k(r.likes)}${r.replies ? ` · ${k(r.replies)} 留言` : ''}${r.views ? ` · ${k(r.views)} views` : ''}</span>`);
+    return `<article class="card" data-id="${esc(r.id)}">${media}<div class="body"><div class="who"><b>${esc(r.author || '@' + r.handle)}</b><span>@${esc(r.handle)}</span><time title="按讚時間">${when(r.liked_at)}</time></div>${r.text ? `<p>${link(r.text)}</p>` : ''}<div class="tags">${tags.join('')}<a href="${esc(r.url)}" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:var(--ink-3);text-decoration:none">打開 ↗</a></div></div></article>`;
+  }
+  async function load(reset) {
+    if (state.loading) return; state.loading = true;
+    if (reset) { wall.innerHTML = ''; state.next = null; state.shown = 0; ROWS.length = 0; }
+    more.innerHTML = '載入中…';
+    try {
+      const u = new URL(API + '/api/x', location.origin);
+      if (state.next) u.searchParams.set('before', state.next);
+      if (state.q) u.searchParams.set('q', state.q);
+      if (state.filter) u.searchParams.set('filter', state.filter);
+      const res = await fetch(u, { headers: KEY ? { Authorization: 'Bearer ' + KEY } : {} });
+      const d = await res.json();
+      d.rows.forEach((r) => ROWS.push(r));
+      wall.insertAdjacentHTML('beforeend', d.rows.map(card).join(''));
+      state.shown += d.rows.length; state.next = d.next;
+      empty.hidden = state.shown > 0;
+      more.innerHTML = state.next ? '<button type="button" id="loadmore">再載入</button>' : (state.shown ? '到底了' : '');
+      const b = $('loadmore'); if (b) b.addEventListener('click', () => load(false));
+    } catch (e) { more.innerHTML = '讀不到：' + esc(e); }
+    state.loading = false;
+  }
+  // 細節頁：點卡片開，大圖、影片可播、全文；左右鍵換下一則
+  const ROWS = [];
+  const sheet = $('sheet'), pin = $('pin');
+  let at = -1;
+  const fmt = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? s : `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  function open(i) {
+    const r = ROWS[i]; if (!r) return; at = i;
+    const abs = (u) => (u && u.startsWith('/') ? API + u : u);
+    const ms = r.media.filter((m) => m.img || m.video);
+    const gallery = ms.length ? ms.map((m) => m.video
+      ? `<video src="${esc(abs(m.video))}" poster="${esc(abs(m.img) || '')}" controls autoplay muted loop playsinline ${m.w && m.h ? `width="${m.w}" height="${m.h}"` : ''}></video>`
+      : `<img src="${esc(abs(m.img))}" ${m.w && m.h ? `width="${m.w}" height="${m.h}"` : ''} alt="">`).join('')
+      : `<div class="none">${r.status === 'done' ? '這則沒有圖片或影片' : '圖還在抓，稍後再開'}</div>`;
+    const meta = [r.likes != null ? `♥ <b>${k(r.likes)}</b>　留言 <b>${k(r.replies)}</b>　轉發 <b>${k(r.reposts)}</b>　views <b>${k(r.views)}</b>` : '', `按讚　<b>${esc(fmt(r.liked_at))}</b>`, r.tweet_at ? `發文　<b>${esc(fmt(r.tweet_at))}</b>` : '', r.score ? `AI 看圖打分　<b>${r.score} 分 · ${esc(r.kind || '')}</b>${r.reason ? `<br>${esc(r.reason)}` : ''}` : '', r.on_wall ? '<b style="color:var(--green)">Design Wall</b>' : ''].filter(Boolean).map((x) => `<div>${x}</div>`).join('');
+    pin.innerHTML = `<div class="gallery">${gallery}</div><div class="side"><div class="who"><b>${esc(r.author || '@' + r.handle)}</b><span>@${esc(r.handle)}</span></div><p class="full">${link(r.text || '')}</p><div class="meta">${meta}</div><a class="go" href="${esc(r.url)}" target="_blank" rel="noopener">打開原推文 ↗</a></div>`;
+    sheet.hidden = false; document.body.style.overflow = 'hidden'; pin.scrollTop = 0;
+    if (!r._full) fetch(API + '/api/x/' + r.id).then((x) => x.json()).then((d) => { if (d && d.id) { Object.assign(r, d, { _full: true }); if (at === i) open(i); } }).catch(() => {});
+    if (i >= ROWS.length - 6 && state.next && !state.loading) load(false);
+  }
+  function shut() { sheet.hidden = true; document.body.style.overflow = ''; pin.querySelectorAll('video').forEach((v) => v.pause()); pin.innerHTML = ''; }
+  wall.addEventListener('click', (e) => {
+    if (e.target.closest('a')) return;
+    const c = e.target.closest('.card'); if (!c) return;
+    const i = ROWS.findIndex((r) => r.id === c.dataset.id); if (i >= 0) open(i);
+  });
+  $('close').addEventListener('click', shut);
+  $('prev').addEventListener('click', () => open(Math.max(0, at - 1)));
+  $('next').addEventListener('click', () => open(Math.min(ROWS.length - 1, at + 1)));
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) shut(); });
+  document.addEventListener('keydown', (e) => { if (sheet.hidden) return; if (e.key === 'Escape') shut(); if (e.key === 'ArrowLeft') open(Math.max(0, at - 1)); if (e.key === 'ArrowRight') open(Math.min(ROWS.length - 1, at + 1)); });
+  $('filters').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; state.filter = b.dataset.f; $('filters').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); load(true); });
+  let t; q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { state.q = q.value.trim(); load(true); }, 300); });
+  // 捲到底自動載入
+  new IntersectionObserver((es) => { if (es[0].isIntersecting && state.next && !state.loading) load(false); }, { rootMargin: '600px' }).observe(more);
+  // 同步狀態直接寫在頁首：不用靠任何人開 session 去查。超過時限就變紅並寫出該查哪裡
+  fetch(API + '/api/x/status').then((r) => r.json()).then((s) => {
+    $('count').textContent = `${s.total || 0} 則 · ${s.on_wall || 0} 進了 Design Wall${s.pending ? ' · ' + s.pending + ' 還在抓' : ''}`;
+    const ago = (iso) => { if (!iso) return null; const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 60 ? `${m} 分鐘前` : m < 1440 ? `${Math.round(m / 60)} 小時前` : `${Math.round(m / 1440)} 天前`; };
+    const stale = (iso, mins) => !iso || (Date.now() - new Date(iso)) > mins * 60000;
+    const parts = [];
+    if (s.ifttt) parts.push([`IFTTT 最後打進來 ${ago(s.ifttt.at)}`, false]);
+    parts.push([`表 ${ago(s.sheet && s.sheet.at) || '沒讀過'}`, stale(s.sheet && s.sheet.at, 15)]);
+    parts.push([`截圖 ${ago(s.shots && s.shots.at) || '沒跑過'}${s.shots && s.shots.need ? `，缺 ${s.shots.need}` : ''}`, stale(s.shots && s.shots.at, 120) || (s.shots && s.shots.need > 50)]);
+    if (s.sheet && s.sheet.warn) parts.push([s.sheet.warn, true]);
+    if (matchMedia('(max-width: 640px)').matches) parts.unshift([`${s.total || 0} 則 · ${s.on_wall || 0} 進了 Design Wall`, false]);
+    $('sync').innerHTML = parts.map(([t, bad]) => `<span class="${bad ? 'bad' : ''}">${esc(t)}</span>`).join('<i>·</i>');
+  }).catch(() => { $('sync').innerHTML = '<span class="bad">讀不到同步狀態</span>'; });
+  load(true);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>貼連結 · Design Wall</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* 手機優先的一頁：上面貼、下面看進度。配色沿用牆（米白底、墨字、橘綠兩個點色） */
+  :root { --bg: #f1efe8; --paper: #fff; --ink: #1c1c1c; --ink-2: #5d5a55; --ink-3: #8c8882; --line: #e2dfd7; --well: #e9e6de; --orange: #D85A30; --green: #1D9E75; --sans: "Noto Sans TC", -apple-system, "PingFang TC", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--sans); }
+  body { padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)); padding-inline: 16px; }
+  .wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header a { color: var(--ink-2); text-decoration: none; font-size: 14px; }
+  h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  form { display: grid; gap: 10px; }
+  textarea { width: 100%; min-height: 112px; resize: vertical; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); padding: 14px 16px; font: 400 16px/1.5 var(--sans); color: var(--ink); outline: none; }
+  textarea:focus { box-shadow: 0 0 0 3px rgba(28, 28, 28, .12); }
+  button { font: 500 16px/1 var(--sans); border: 0; border-radius: 999px; padding: 15px 20px; cursor: pointer; }
+  button.go { background: var(--ink); color: #fff; }
+  button.go[disabled] { opacity: .5; }
+  .hint { font-size: 13px; color: var(--ink-3); margin: 0; }
+  .key { display: none; gap: 8px; }
+  .key input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 400 14px var(--sans); }
+  .key button { background: var(--well); color: var(--ink); padding: 10px 14px; font-size: 14px; }
+  .nokey .key { display: flex; }
+  .nokey form { opacity: .35; pointer-events: none; }
+  .list { display: grid; gap: 10px; }
+  .row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 10px; align-items: center; text-decoration: none; color: inherit; }
+  .row .pic { width: 72px; height: 72px; border-radius: 8px; background: var(--well); object-fit: cover; display: block; }
+  .row .pic.none { display: grid; place-items: center; color: var(--ink-3); font-size: 12px; }
+  .row .t { font-weight: 500; font-size: 15px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .row .m { font-size: 12.5px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
+  .row .m i { font-style: normal; }
+  .row .m .ok { color: var(--green); }
+  .row .m .bad { color: var(--orange); }
+  .row .m .wait { color: var(--ink-2); }
+  h2 { font-size: 14px; font-weight: 500; color: var(--ink-3); margin: 8px 0 0; }
+  .msg { font-size: 14px; color: var(--ink-2); min-height: 1.4em; margin: 0; }
+  .msg.bad { color: var(--orange); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161513; --paper: #1f1e1b; --ink: #ece9e2; --ink-2: #b2ada4; --ink-3: #8a857c; --line: #2d2b27; --well: #2a2824; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header><h1>貼連結</h1><a href="./">回到牆</a></header>
+  <div class="key"><input id="k" type="password" placeholder="貼上牆的收件密鑰" autocomplete="off"><button type="button" id="savek">記住</button></div>
+  <form id="f">
+    <textarea id="u" placeholder="貼網址，或整段文字裡有網址也行" autocomplete="off"></textarea>
+    <button class="go" type="submit" id="go">存進牆</button>
+    <p class="msg" id="msg"></p>
+  </form>
+  <p class="hint">一貼就先記下幾點幾分貼的，接著自己去抓代表圖、看圖打分，幾十秒後出現在牆上。X、YouTube 與有 og:image 的網站抓得到圖；抓不到的先存連結，下次例行整理再補圖。</p>
+  <h2>最近貼的</h2>
+  <div class="list" id="list"><p class="hint">還沒有</p></div>
+</div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const API = '';
+  let KEY = '';
+  try {
+    const m = /^#key=(.+)$/.exec(location.hash);
+    if (m) { localStorage.setItem('wall-key', m[1]); history.replaceState(null, '', location.pathname + location.search); }
+    KEY = localStorage.getItem('wall-key') || '';
+  } catch (e) { /* 沒有儲存空間 */ }
+  const app = $('app'), msg = $('msg'), u = $('u'), go = $('go'), list = $('list');
+  const H = () => ({ Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' });
+  const setKeyState = () => app.classList.toggle('nokey', !KEY);
+  setKeyState();
+  $('savek').addEventListener('click', () => { KEY = $('k').value.trim(); try { localStorage.setItem('wall-key', KEY); } catch (e) {} setKeyState(); load(); });
+
+  // Android 分享目標或捷徑用網址帶進來：?url=...&text=...
+  const q = new URLSearchParams(location.search);
+  const pre = [q.get('url'), q.get('text'), q.get('title')].filter(Boolean).join('\n');
+  if (pre) { u.value = pre; }
+
+  const tracking = new Map();
+  function rowEl(r) {
+    const title = r.page_title || (r.page_url || '').replace(/^https?:\/\//, '').slice(0, 60) || '（處理中）';
+    const when = (r.dropped_at || r.created_at || '').replace('T', ' ').slice(5, 16);
+    let st;
+    if (r.status === 'done') st = `<i class="ok">上牆</i>` + (r.score ? `<i>${r.score} 分 · ${esc(r.kind || '')}</i>` : `<i>只存連結</i>`);
+    else if (r.status === 'error') st = `<i class="bad">失敗：${esc(r.error || '')}</i>`;
+    else st = `<i class="wait">抓圖打分中…</i>`;
+    const pic = r.image_key ? `<img class="pic" src="${esc(API + '/media/' + r.image_key)}" alt="">` : `<span class="pic none">${r.status === 'done' ? '沒圖' : '…'}</span>`;
+    return `<a class="row" href="${esc(r.page_url || '#')}" target="_blank" rel="noopener" data-id="${esc(r.id)}">${pic}<span><span class="t">${esc(title)}</span><span class="m"><i>${esc(when)} 貼</i>${st}</span></span></a>`;
+  }
+  async function load() {
+    if (!KEY) return;
+    try {
+      const res = await fetch(API + '/api/items', { headers: { Authorization: 'Bearer ' + KEY } });
+      if (res.status === 401) { msg.textContent = '密鑰不對'; msg.className = 'msg bad'; KEY = ''; setKeyState(); return; }
+      const rows = (await res.json()).filter((r) => r.source === 'drop' || r.source === 'iphone' || r.dropped_at).slice(0, 30);
+      list.innerHTML = rows.length ? rows.map(rowEl).join('') : '<p class="hint">還沒有</p>';
+      rows.filter((r) => r.status === 'pending').forEach((r) => track(r.id));
+    } catch (e) { msg.textContent = '讀不到清單：' + e; msg.className = 'msg bad'; }
+  }
+  function track(id) {
+    if (tracking.has(id)) return;
+    const t = setInterval(async () => {
+      try {
+        const r = await (await fetch(API + '/api/items/' + id, { headers: H() })).json();
+        const el = list.querySelector(`[data-id="${id}"]`);
+        if (el) el.outerHTML = rowEl(r);
+        if (r.status !== 'pending') { clearInterval(t); tracking.delete(id); }
+      } catch (e) { clearInterval(t); tracking.delete(id); }
+    }, 2500);
+    tracking.set(id, t);
+  }
+  $('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = u.value.trim();
+    if (!/https?:\/\//.test(text)) { msg.textContent = '裡面要有一個網址'; msg.className = 'msg bad'; return; }
+    go.disabled = true; msg.textContent = '記下了，正在抓圖…'; msg.className = 'msg';
+    try {
+      const r = await (await fetch(API + '/api/drop', { method: 'POST', headers: H(), body: JSON.stringify({ url: text, text: text.replace(/https?:\/\/\S+/g, '').trim(), dropped_at: new Date().toISOString(), source: 'drop' }) })).json();
+      if (r.error) { msg.textContent = r.error; msg.className = 'msg bad'; }
+      else { msg.textContent = r.duplicate ? '這個已經貼過了，直接看下面' : '已記錄 ' + r.dropped_at.replace('T', ' ').slice(0, 16); u.value = ''; await load(); track(r.id); }
+    } catch (err) { msg.textContent = '送不出去：' + err; msg.className = 'msg bad'; }
+    go.disabled = false;
+  });
+  load();
+})();
+</script>
+</body>
+</html>

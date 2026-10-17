@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Wall</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Design Wall">
+<meta name="theme-color" content="#f1efe8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&family=Noto+Serif+TC:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="wall.css">
+</head>
+<body>
+<header class="top">
+  <label class="search">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
+    <span class="sr">搜尋</span>
+    <input id="q" type="search" placeholder="搜尋" autocomplete="off" spellcheck="false">
+  </label>
+  <nav class="tabs" id="tabs" aria-label="檢視"></nav>
+  <a class="drop-link x" href="x.html" aria-label="X Wall" title="X Wall：所有按讚的推文"><svg class="xlogo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+  <a class="drop-link" href="drop.html" aria-label="貼連結" title="貼連結">＋</a>
+</header>
+<div class="filters" id="filters"></div>
+<main>
+  <div class="wall" id="wall"></div>
+  <div class="more" id="more" aria-hidden="true"></div>
+  <p class="empty" id="empty" hidden>沒有符合的卡片</p>
+</main>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" tabindex="-1" hidden>
+  <div class="ctl"><button type="button" id="prev" aria-label="上一張"><svg viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg></button><button type="button" id="next" aria-label="下一張"><svg viewBox="0 0 20 20"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg></button><button type="button" id="close" aria-label="關閉"><svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg></button></div>
+  <article class="pin" id="pin"></article>
+</div>
+<script src="cards.js"></script>
+<script src="wall.js"></script>
+</body>
+</html>
