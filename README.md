@@ -2,7 +2,7 @@
 
 A wall of the design work I liked on X, scored by a vision model and kept on one static page
 
-[Live wall](https://hugo6991.github.io/design-wall/) · [Run it](#run-it) · [Make it yours](#make-it-yours)
+[Live wall](https://hugo6991.github.io/design-wall/) · [Run it](#run-it) · [Set it up with an agent](#set-it-up-with-an-agent) · [Make it yours](#make-it-yours)
 
 ![The wall at desktop width, a masonry grid of design posts with author and score on hover](docs/img/wall-desktop.png)
 
@@ -57,6 +57,54 @@ python3 -m http.server 8941
 ```
 
 Open http://localhost:8941/site/ and you have the wall with the 200 cards. Python 3 is the only requirement for the static page
+
+## Set it up with an agent
+
+Paste one of these into Claude Code, Codex or any coding agent that can run a shell. The agent asks you the questions first, because a few steps need your own accounts and only you can do them, then it builds the parts you chose and tells you exactly what is left for you
+
+### English
+
+```text
+Set up my own copy of https://github.com/Hugo6991/design-wall
+
+Before you change anything, ask me these and wait for my answers:
+1. Which version do I want: just the static wall with my own cards, or the full pipeline that fills it from my X likes?
+2. Where do my cards come from: a folder of images I already have, a list of links, or my X likes?
+3. Where should it live: GitHub Pages (free, static only) or Cloudflare (needed for the pipeline)?
+4. If the pipeline: do I already have a Cloudflare account with Workers, D1, R2 and Workers AI, and am I logged in with `npx wrangler login`?
+5. If X likes: am I fine making an IFTTT applet "new liked tweet" that posts to the Worker and also writes a Google Sheet shared view only by link?
+6. What should the scorer care about? Give me 3 to 5 lines about my taste for `worker/prompt.js`, or keep the default
+7. Interface language: keep Traditional Chinese, or switch the visible text to English?
+
+Then:
+- Fork or clone the repo, run `python3 scripts/build.py --check`, and show me the wall at http://localhost:8941/site/
+- For my own cards, write them into `data/cards.json` with the images under `assets/x/`, and run `--check` again until it passes
+- For the pipeline, follow "The whole pipeline" in the README. Never print or commit `INGEST_TOKEN`, the D1 id or the Sheet id; they go in `wrangler.jsonc`, `extension/config.js` or `wrangler secret put`, which git ignores
+- Stop and hand me a numbered list for anything that needs my login or a click: Cloudflare login, the IFTTT applet, sharing the Sheet, loading the Chrome extension
+- At the end, tell me the live URL, what you checked and what you did not
+```
+
+### 繁體中文
+
+```text
+幫我建一份自己的 https://github.com/Hugo6991/design-wall
+
+動手前先問我下面這些，等我回答再開始
+1. 要哪個版本？只要靜態的牆、放我自己的卡片，還是要從 X 按讚自動收進來的完整流程？
+2. 卡片從哪來？我手上已有的一批圖、一串連結，還是我的 X 按讚？
+3. 放在哪裡？GitHub Pages（免費，只有靜態頁）還是 Cloudflare（完整流程一定要）？
+4. 要完整流程的話，我有沒有開好 Workers、D1、R2、Workers AI 的 Cloudflare 帳號，有沒有跑過 `npx wrangler login`？
+5. 要收 X 按讚的話，我願不願意開一個 IFTTT「按讚新推文」的 applet，同時送到 Worker、也寫進一張「知道連結就能檢視」的 Google 試算表？
+6. 打分要看什麼？給我 3 到 5 行我的品味寫進 `worker/prompt.js`，或者沿用預設
+7. 介面文字要留繁體中文，還是改成英文？
+
+我回答完之後
+- Fork 或 clone 這個 repo，跑 `python3 scripts/build.py --check`，在 http://localhost:8941/site/ 給我看牆
+- 放我自己的卡片時，寫進 `data/cards.json`，圖放 `assets/x/`，再跑 `--check` 直到通過
+- 要完整流程就照 README 的「The whole pipeline」做。`INGEST_TOKEN`、D1 id、試算表 id 不准印出來、不准 commit，只放在 git 會忽略的 `wrangler.jsonc`、`extension/config.js` 或 `wrangler secret put`
+- 遇到要我登入或點按的地方就停，給我一張編號清單：Cloudflare 登入、IFTTT applet、分享試算表、載入 Chrome 擴充功能
+- 最後告訴我線上網址、你驗證過什麼、什麼還沒驗證
+```
 
 ## Make it yours
 
