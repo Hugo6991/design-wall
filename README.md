@@ -4,7 +4,7 @@ A wall of the design work I liked on X, scored by a vision model and kept on one
 
 [Live wall](https://hugo6991.github.io/design-wall/) · [Run it](#run-it) · [Set it up with an agent](#set-it-up-with-an-agent) · [Make it yours](#make-it-yours)
 
-![The wall at desktop width, a masonry grid of design posts with author and score on hover](docs/img/wall-desktop.png)
+[![Design Wall: a tilted wall of liked design posts, each with the score the model gave it](docs/img/hero.webp)](https://hugo6991.github.io/design-wall/)
 
 The page you see is built from `data/cards.json`: 200 public posts I liked on X, picked by the score the intake model gave them. Every card links back to the original post and names the author. The pipeline that fills the wall by itself is in this repository too, but the wall runs without it
 
@@ -25,6 +25,8 @@ Open a card and you get the note, the tags, the palette the model pulled out and
 ![The wall on a phone, two columns](docs/img/wall-phone.png)
 
 Two columns on a phone, search across titles and tags, and a hash in the URL so a card can be shared
+
+Video posts play on the wall itself, muted, as they scroll into view. The files stay on X: the page streams the small 360p version straight from `video.twimg.com`, plays at most three at once and drops each one as soon as it leaves the screen. With data saver on, on 2G or with reduced motion, nothing autoplays and the play badge waits for a hover or a tap. The page sends no referrer, because X refuses video requests that carry another site's address
 
 ## How it works
 
@@ -163,6 +165,7 @@ The Worker scores with `@cf/zai-org/glm-5.3-flash` by default. Change `INTAKE_MO
 | --- | --- | --- |
 | 200 cards: post url, author handle, title, note, tags, score, palette | `data/cards.json` | Yes |
 | Card images, resized to 1200px wide | `assets/x/` | Yes |
+| Videos | linked from X at `video.twimg.com`, never copied | No, only the link |
 | My full likes export, the Sheet id, the D1 id, the ingest token | my private repo and Cloudflare | No |
 | Your own cards and tokens once you fork | your `wrangler.jsonc` and `extension/config.js` | Ignored by git |
 
@@ -176,7 +179,8 @@ The private version of this project holds the complete pipeline state and my own
 | --- | --- |
 | Static wall, search, detail sheet, phone layout, Pages deploy | Accounts or multi user walls |
 | Worker intake from likes, extension and phone, scoring, dedupe | A UI to manage cards without the token |
-| Text only post screenshots with counts | Video playback on the public wall |
+| Text only post screenshots with counts | Uploading videos into the repository |
+| Video cards play in place, streamed from X | |
 
 The interface text is Traditional Chinese for now
 

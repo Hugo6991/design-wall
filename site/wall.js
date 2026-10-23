@@ -80,17 +80,9 @@
         + (c.video ? '<span class="play"></span>' : '')
         + `<span class="veil"><span><span class="v">${esc(c.origin || '')}</span>${c.kind === 'mine' || c.kind === 'lesson' ? v : ''}<b>${esc(c.kind === 'ref' ? c.group_title + '　' + c.title : c.title)}</b></span></span>`;
       if (c.video) {
-        b.addEventListener('mouseenter', () => {
-          if (b.querySelector('video')) return;
-          const vid = document.createElement('video');
-          vid.src = srcOf(c.video); vid.muted = true; vid.loop = true; vid.playsInline = true; vid.autoplay = true;
-          vid.width = m.w; vid.height = m.h;
-          b.querySelector('img').replaceWith(vid);
-        });
-        b.addEventListener('mouseleave', () => {
-          const vid = b.querySelector('video');
-          if (vid) { const im = document.createElement('img'); im.src = srcOf(m.src); im.width = m.w; im.height = m.h; vid.replaceWith(im); }
-        });
+        b._card = c;
+        if (vio) vio.observe(b);
+        b.addEventListener('mouseenter', () => startVideo(b, true));
       }
     } else {
       b.className = 'card text' + (c.kind === 'note' ? ' note' : '');
@@ -106,7 +98,42 @@
     return Math.min(9, Math.ceil(len / perLine)) * 26 + 70;
   }
 
+  // 影片卡：滑到畫面裡停一下才疊一支靜音 <video> 上去播，離開畫面就拆掉，同時最多 MAX_PLAYING 支
+  // 影片直接連 X 的原址不進 repo；省流量、2G、偏好減少動態的人不自動播，只留播放章，滑過去或點開才播
+  const MAX_PLAYING = 3;
+  const net = navigator.connection || {};
+  const quiet = net.saveData || /2g/.test(net.effectiveType || '') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const playing = new Set(), waiting = new Set();
+  function startVideo(b, force) {
+    if (b._vid || b.classList.contains('no-video')) return;
+    if (!force && playing.size >= MAX_PLAYING) { waiting.add(b); return; }
+    waiting.delete(b);
+    const vid = document.createElement('video');
+    vid.muted = true; vid.loop = true; vid.playsInline = true; vid.preload = 'none';
+    vid.addEventListener('playing', () => b.classList.add('is-playing'), { once: true });
+    vid.addEventListener('error', () => { stopVideo(b); b.classList.add('no-video'); });   // 原推刪了或連不上就留著圖
+    vid.src = srcOf(b._card.video);
+    b.appendChild(vid); b._vid = vid; playing.add(b);
+    vid.play().catch(() => stopVideo(b));
+  }
+  function stopVideo(b) {
+    clearTimeout(b._t); waiting.delete(b);
+    if (!b._vid) return;
+    b._vid.pause(); b._vid.removeAttribute('src'); b._vid.load(); b._vid.remove();
+    b._vid = null; playing.delete(b); b.classList.remove('is-playing');
+    const next = waiting.values().next().value;   // 空出一個位子就讓排隊中、還在畫面裡的下一支播
+    if (next) startVideo(next);
+  }
+  const vio = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => {
+    const b = e.target;
+    clearTimeout(b._t);
+    if (e.isIntersecting && !quiet) b._t = setTimeout(() => startVideo(b), 300);   // 快速滑過的不開
+    else stopVideo(b);
+  }), { threshold: 0.6 }) : null;
+
   function render() {
+    playing.forEach(stopVideo); waiting.clear();
+    if (vio) vio.disconnect();
     shown = visible();
     wall.textContent = '';
     empty.hidden = shown.length > 0;
@@ -275,7 +302,7 @@
     at = i;
     const pin = $('pin');
     let media = '';
-    if (c.video) media = `<video src="${esc(srcOf(c.video))}" poster="${esc(srcOf(c.image.src))}" controls loop muted playsinline autoplay></video>`;
+    if (c.video) media = `<video src="${esc(srcOf(c.video_hd || c.video))}" poster="${esc(srcOf(c.image.src))}" controls loop muted playsinline autoplay></video>`;
     else if (c.gif) media = `<img src="${esc(srcOf(c.gif))}" alt="">`;
     else if (c.image) media = `<img src="${esc(srcOf(c.image.src))}" width="${c.image.w}" height="${c.image.h}" alt="">`;
     else media = `<div class="none">${esc(c.kind === 'note' ? c.title : ((c.quotes && c.quotes[0] && c.quotes[0].text) || c.title))}</div>`;

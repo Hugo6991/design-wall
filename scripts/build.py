@@ -36,7 +36,7 @@ def to_wall(c):
     return {
         'id': c['id'], 'kind': 'ref', 'group': c['id'], 'title': c['title'], 'group_title': c.get('author', ''),
         'note': c.get('note', ''), 'tags': c.get('tags', []), 'date': c.get('date', ''), 'source': c.get('author', ''),
-        'origin': 'X like', 'url': c.get('url', ''), 'video': '', 'gif': '', 'video_url': '',
+        'origin': 'X like', 'url': c.get('url', ''), 'video': c.get('video', ''), 'video_hd': c.get('video_hd', ''), 'gif': '', 'video_url': c.get('url', '') if c.get('video') else '',
         'image': c['image'], 'points': [], 'teardown': '', 'strips': [], 'public': True,
         'score': c.get('score'), 'verdict': 'wall', 'palette': c.get('palette', []),
     }
