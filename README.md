@@ -39,13 +39,26 @@ flowchart LR
   W -->|score image, kind, tags, palette| AI[Workers AI]
   W --> D1[(D1)]
   W --> R2[(R2)]
-  X[Headless browser job] -->|screenshot text only posts| R2
+  M[Always on Mac, e.g. a Mac mini] -->|every 30 min, tools/x_shots.py| X[Headless browser]
+  X -->|screenshot text only posts| R2
   D1 --> WALL[Static wall]
 ```
 
 The Worker is the only piece that writes. It stores a row in D1 and the image in R2, asks Workers AI for a kind, a score and a palette, and keeps anything scored 6 or higher. A cron reads new Sheet rows every two minutes because IFTTT webhooks drop requests now and then, and the Sheet is the record that survives. Text only posts get rendered by `tools/x_shots.py` on a machine that is always on, since the embed needs a real browser
 
 The wall itself is `site/`: one HTML file, one script, one stylesheet, no framework. `scripts/build.py` turns `data/cards.json` into `cards.js`, and that is the whole build
+
+## What you need
+
+| For | You need |
+| --- | --- |
+| The static wall | Python 3, nothing else |
+| Likes flowing in by themselves | A Cloudflare account with Workers, D1, R2 and Workers AI, an IFTTT account, a Google Sheet |
+| Text only posts showing up as cards | A second machine that never sleeps, I use a Mac mini |
+
+The last row is the one people miss. The Sheet itself is read by a Cloudflare cron, so likes keep landing on the wall with every laptop closed. But a liked post with no image or video has nothing to score until `tools/x_shots.py` opens the official embed in Chromium and takes a picture of it, and that needs a real browser running somewhere. A laptop that sleeps works badly here: the queue piles up overnight and the cards show up hours late. I run it on a Mac mini under launchd every 30 minutes. Any always on Mac or Linux box with Python and Playwright will do
+
+Without that machine the pipeline still works. Posts with media go up as usual, and text only posts wait in the queue until something renders them
 
 ## Run it
 
@@ -138,7 +151,9 @@ You need a Cloudflare account with Workers, D1, R2 and Workers AI enabled
 3. `npx wrangler secret put INGEST_TOKEN` with a long random string. Every write to the Worker needs this token
 4. For X likes: an IFTTT applet "new liked tweet" that posts to `/api/x/ifttt` and also appends to a Google Sheet. Put the Sheet id in `X_LIKES_SHEET_ID` and share the Sheet as view only by link, because the cron reads it as CSV
 5. `python3 scripts/build.py --dist && npx wrangler deploy`
-6. Optional: load `extension/` as an unpacked Chrome extension after copying `config.example.js` to `config.js` with your Worker URL and token. Optional: run `tools/x_shots.py` on a schedule somewhere that stays on
+6. Optional: load `extension/` as an unpacked Chrome extension after copying `config.example.js` to `config.js` with your Worker URL and token. Optional: the screenshot job below
+7. On the always on machine: `python3 -m venv ~/.design-wall/venv`, then `~/.design-wall/venv/bin/pip install playwright pillow` and `~/.design-wall/venv/bin/playwright install chromium`. Copy `tools/x_shots.py` to `~/.design-wall/`, set `API` at the top to your Worker URL, and put the same `INGEST_TOKEN` in `~/.design-wall/ingest-token`. Run it once by hand with `--dry-run` to see the queue
+8. On a Mac, copy `tools/ai.designwall.x-shots.plist` to `~/Library/LaunchAgents/`, replace `YOUR_USER` with your user name, and `launchctl load` it. It runs every 30 minutes and logs to `~/.design-wall/shots.log` and `shots.err`. On Linux a cron line with the same command does the same job. `/api/x/status` on the Worker shows `shots.at`, the last time the job checked in; more than an hour old means the machine is asleep or the job is failing
 
 The Worker scores with `@cf/zai-org/glm-5.3-flash` by default. Change `INTAKE_MODEL` in `wrangler.jsonc` if you want a different vision model, and edit `worker/prompt.js` if your taste differs from mine, which it should
 
